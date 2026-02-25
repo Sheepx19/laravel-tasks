@@ -69,4 +69,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: msdocs-laravel-madhur-east
-          package: laravel-app
+          package: ./laravel-app
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_4E1F6CB1BECC44D1A71850C48957AB6E }}
