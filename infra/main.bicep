@@ -24,7 +24,10 @@ var resourceToken = toLower(uniqueString(subscription().id, name, location))
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: '${name}_group'
   location: location
-  tags: { 'azd-env-name': name }
+  tags: {
+    'azd-env-name': name
+    Department: 'IT'
+  }
 }
 
 module resources 'resources.bicep' = {
