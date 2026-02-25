@@ -1,58 +1,55 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy PHP app to Azure Web App - msdocs-laravel-madhur-east
+name: Deploy Laravel to Azure Web App
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read #This is required for actions/checkout
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: '8.2'
+          extensions: mbstring, intl, pdo_mysql, sqlite3
+          coverage: none
 
-      - name: Check if composer.json exists
-        id: check_files
-        uses: andstor/file-existence-action@v1
-        with:
-          files: 'composer.json'
+      - name: Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
 
-      - name: Run composer install if composer.json exists
-        if: steps.check_files.outputs.files_exists == 'true'
-        run: composer validate --no-check-publish && composer install --prefer-dist --no-progress
+      - name: Install NPM dependencies and build assets
+        run: |
+          npm install
+          npm run build
 
+      - name: Prepare deployment package
+        run: |
+          mkdir -p deploy
+          rsync -av --exclude="node_modules" --exclude=".git" ./ ./deploy
+          cp nginx.conf deploy/
 
-      - name: Upload artifact for deployment job
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: php-app
-          path: .
+          name: laravel-app
+          path: deploy/
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
-    permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download artifact from build job
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: php-app
-      
+          name: laravel-app
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -60,11 +57,8 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_2DFCBF80D92F42E0B189A6935160FB14 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_74AD78F64CAA48A4890AFA3303AC81AD }}
 
-      - name: 'Deploy to Azure Web App'
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
-        id: deploy-to-webapp
         with:
-          app-name: 'msdocs-laravel-madhur-east'
-          slot-name: 'Production'
+          app-name: msdocs-laravel-madhur-east
           package: .
-          
